@@ -7,7 +7,13 @@ from graphene_django import DjangoObjectType
 from .models import Customer, Product, Order
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 
+# Define a validator for the phone format
+phone_regex = RegexValidator(
+    regex=r'^\+?1?\d{9,15}$', 
+    message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
+)
 
 class CustomerType(DjangoObjectType):
     """
@@ -69,7 +75,7 @@ class ProductInput(graphene.InputObjectType):
     """
 
     name = graphene.String(required=True)
-    price = graphene.Float(required=True)
+    price = graphene.Decimal(required=True)
     stock = graphene.Int(required=True)
 
 
@@ -115,20 +121,19 @@ class CreateCustomer(graphene.Mutation):
 
     class Arguments:
         customer = CustomerInput(required=True)
+    
 
     def mutate(self, info, customer = None):
         """
         Create a new customer
         """
-        customer = Customer(
-            name=customer.name,
-            email=customer.email,
-            phone=customer.phone,
-        )
-
         try:
-            customer.full_clean()
-            customer.save()
+            validated_phone = CreateCustomer.validate_phone(customer.phone)
+            customer=Customer.objects.create(
+                name=customer.name,
+                email=customer.email,
+                phone=validated_phone,
+            )
         except ValidationError as e:
             return CreateCustomer(
                 customer=None, message=str(e)
@@ -144,7 +149,15 @@ class CreateCustomer(graphene.Mutation):
         return CreateCustomer(
             customer=customer, message="Customer created successfully"
         )
-
+    
+    @staticmethod
+    def validate_phone(phone):
+        """
+        Validate the phone number
+        """
+        phone_regex(phone) # raise ValidationError if phone is not valid
+        return phone
+ 
 
 class CreateOrder(graphene.Mutation):
     """
@@ -168,8 +181,13 @@ class CreateOrder(graphene.Mutation):
         )
         
         try:
-            order.full_clean()
-            order.save()
+            # order.full_clean()
+            # order.save()
+            order=Order.objects.create(
+                customer=order.customer,
+                products=order.products,
+                order_date=order.order_date,
+            )
         except ValidationError as e:
             return CreateOrder(
                 order=None, message=str(e)
@@ -189,9 +207,7 @@ class BulkCreateCustomers(graphene.Mutation):
     """
 
     customers = graphene.List(CustomerType)
-    message = graphene.String()
     errors = graphene.List(graphene.String)
-    error_message = graphene.String()
 
     class Arguments:
         customers = graphene.List(CustomerInput, required=True)
@@ -202,21 +218,24 @@ class BulkCreateCustomers(graphene.Mutation):
 
         for customer_data in customers:
             try:
-                # Use get_or_create to handle unique email validation. 
+                validated_phone = CreateCustomer.validate_phone(customer_data.phone)
+                # get_or_create to handle unique email validation. 
                 # IntegrityError will be raised if the email exists.
                 customer, created = Customer.objects.get_or_create(
                     email=customer_data.email,
                     defaults={
                         'name': customer_data.name,
-                        'phone': customer_data.phone
+                        'phone': validated_phone
                     }
                 )
-                if not created:
-                    errors.append(f"Error creating customer with email '{customer_data.email}': Email already exists.")
-                else:
+                if created:
                     created_customers.append(customer)
+                else:
+                    errors.append(f"Error creating customer with email '{customer_data.email}': Email already exists.")  
+            except ValidationError as e:
+                errors.append(f"Error creating customer: {e}")
             except IntegrityError:
-                errors.append(f"Error creating customer with email '{customer_data.email}': Email already exists.")
+                errors.append("Error creating customer with email '{customer_data.email}': Email already exists.")
             except Exception as e:
                 errors.append(f"Error creating customer: {e}")
         
@@ -229,6 +248,7 @@ class CreateProduct(graphene.Mutation):
     """
 
     product = graphene.Field(ProductType)
+    total_amount = graphene.Float()
     message = graphene.String()
 
     class Arguments:
@@ -238,14 +258,45 @@ class CreateProduct(graphene.Mutation):
         """
         Create a new product
         """
-        product = Product.objects.create(
-            name=product.name,
-            price=product.price,
-            stock=product.stock,
-        )
+        validated_stock = CreateProduct.validate_stock(product.stock)
+        validated_price = CreateProduct.validate_price(product.price)
+
+        try: 
+            product = Product.objects.create(
+                name=product.name,
+                price=validated_price,
+                stock=validated_stock,
+            )
+        except ValidationError as e:
+            return CreateProduct(
+                product=None, total_amount=0, message=str(e)
+            )
+        except Exception as e:
+            return CreateProduct(
+                product=None, total_amount=0, message=str(e)
+            )
+        total_amount = validated_price * validated_stock
         return CreateProduct(
-            product=product, message="Product created successfully"
+            product=product, total_amount=total_amount, message="Product created successfully"   
         )
+    
+    @staticmethod   
+    def validate_stock(stock):
+        """
+        Validate the stock
+        """
+        if stock <= 0:
+            raise ValidationError("Stock must be greater than 0")
+        return stock
+    
+    @staticmethod
+    def validate_price(price):
+        """
+        Validate the price
+        """
+        if price <= 0:
+            raise ValidationError("Price must be greater than 0")
+        return price
 
 
 class Query(graphene.ObjectType):
