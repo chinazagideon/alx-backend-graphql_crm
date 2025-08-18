@@ -18,8 +18,10 @@ from django.contrib import admin
 from django.urls import path
 from graphene_django.views import GraphQLView
 import alx_backend_graphql.schema
+import crm.schema
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('graphql/', GraphQLView.as_view(graphiql=True, schema=alx_backend_graphql.schema.schema)),
+    # path('graphql/', GraphQLView.as_view(graphiql=True, schema=crm.schema.schema)),
 ]
