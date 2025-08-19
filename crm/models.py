@@ -29,7 +29,8 @@ class Product(models.Model):
 class Order(models.Model):
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, null=False, blank=False)
     products = models.ManyToManyField(Product, null=False, blank=False)
-    order_date = models.DateField(auto_now_add=True)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, null=False, blank=False)
+    order_date = models.DateField(auto_now_add=True, null=False, blank=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

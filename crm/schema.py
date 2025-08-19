@@ -41,7 +41,7 @@ class OrderType(DjangoObjectType):
     
     class Meta:
         model = Order
-        fields = ("id", "customer", "products", "order_date")
+        fields = ("id", "customer", "products", "total_amount")
     
 
 class CustomerInput(graphene.InputObjectType):
@@ -60,8 +60,6 @@ class OrderInput(graphene.InputObjectType):
 
     customer = graphene.Int(required=True)
     products = graphene.List(graphene.Int, required=True)
-    order_date = graphene.Date(required=True)
-
 class BulkCreateCustomersInput(graphene.InputObjectType):
     """
     Define BulkCreateCustomers input fields
@@ -174,20 +172,22 @@ class CreateOrder(graphene.Mutation):
         """
         Create a new order
         """
-        order = Order(
-            customer=order.customer,
-            products=order.products,
-            order_date=order.order_date,
-        )
+        customer = Customer.objects.filter(pk=order.customer)
+        products = Product.objects.filter(pk__in=order.products)
+
+        if not customer.exists():
+            raise ValidationError("Customer not found")
+        
+        if not products.exists():
+            raise ValidationError("Products not found")
+        total_amount = sum(product.price for product in products)
         
         try:
-            # order.full_clean()
-            # order.save()
             order=Order.objects.create(
-                customer=order.customer,
-                products=order.products,
-                order_date=order.order_date,
+                customer=customer.first(),
+                total_amount=total_amount,
             )
+            order.products.set(products)
         except ValidationError as e:
             return CreateOrder(
                 order=None, message=str(e)
