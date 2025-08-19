@@ -15,7 +15,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 
 # Import the relay version of DjangoObjectType
-# from graphene_django.relay import DjangoObjectType as RelayDjangoObjectType
+from graphene_django.relay import DjangoObjectType as RelayDjangoObjectType
 
 
 # Define a validator for the phone format
@@ -24,7 +24,7 @@ phone_regex = RegexValidator(
     message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
 )
 
-class CustomerType(DjangoObjectType):
+class CustomerType(RelayDjangoObjectType):
     """
     Define Customer fields
     """
@@ -35,7 +35,7 @@ class CustomerType(DjangoObjectType):
         filterset_class = CustomerFilter
         interfaces = (graphene.relay.Node,)
 
-class ProductType(DjangoObjectType):
+class ProductType(RelayDjangoObjectType):
     """
     Define Product fields
     """
@@ -47,7 +47,7 @@ class ProductType(DjangoObjectType):
         interfaces = (graphene.relay.Node,)
 
 
-class OrderType(DjangoObjectType):
+class OrderType(RelayDjangoObjectType):
     """
     Define Order fields
     """

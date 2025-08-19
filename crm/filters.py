@@ -6,11 +6,12 @@ class CustomerFilter(django_filters.FilterSet):
     email = django_filters.CharFilter(lookup_expr='icontains')
     phone = django_filters.CharFilter(lookup_expr='icontains')
 
+    created_at = django_filters.DateFromToRangeFilter()
     phone_pattern = django_filters.CharFilter(field_name='phone', lookup_expr='startswith')
 
     class Meta:
         model = Customer
-        fields = ['name', 'email', 'phone', 'phone_pattern']
+        fields = ['name', 'email', 'phone', 'phone_pattern', 'created_at']
 
 class ProductFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(lookup_expr='icontains')
@@ -26,6 +27,8 @@ class ProductFilter(django_filters.FilterSet):
 class OrderFilter(django_filters.FilterSet):
     customer_name = django_filters.CharFilter(field_name='customer__name', lookup_expr='icontains')
     product_name = django_filters.CharFilter(field_name='products__name', lookup_expr='icontains')
+
+    order_date = django_filters.DateFromToRangeFilter()
     total_amount = django_filters.RangeFilter()
     
     class Meta:
