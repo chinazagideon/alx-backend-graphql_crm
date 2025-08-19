@@ -4,10 +4,19 @@ This file contains the schema for the CRM API.
 
 import graphene
 from graphene_django import DjangoObjectType
+from graphene_django.filter import DjangoFilterConnectionField
+from django_filters.rest_framework import DjangoFilterBackend
+# from .mutations import CreateCustomer, BulkCreateCustomers, CreateProduct, CreateOrder
+
+from .filters import CustomerFilter, ProductFilter, OrderFilter
 from .models import Customer, Product, Order
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
+
+# Import the relay version of DjangoObjectType
+# from graphene_django.relay import DjangoObjectType as RelayDjangoObjectType
+
 
 # Define a validator for the phone format
 phone_regex = RegexValidator(
@@ -23,6 +32,8 @@ class CustomerType(DjangoObjectType):
     class Meta:
         model = Customer
         fields = ("id", "name", "email", "phone")
+        filterset_class = CustomerFilter
+        interfaces = (graphene.relay.Node,)
 
 class ProductType(DjangoObjectType):
     """
@@ -32,6 +43,8 @@ class ProductType(DjangoObjectType):
     class Meta:
         model = Product
         fields = ("id", "name", "price", "stock")
+        filterset_class = ProductFilter
+        interfaces = (graphene.relay.Node,)
 
 
 class OrderType(DjangoObjectType):
@@ -42,7 +55,8 @@ class OrderType(DjangoObjectType):
     class Meta:
         model = Order
         fields = ("id", "customer", "products", "total_amount")
-    
+        filterset_class = OrderFilter
+        interfaces = (graphene.relay.Node,)
 
 class CustomerInput(graphene.InputObjectType):
     """
@@ -304,48 +318,41 @@ class Query(graphene.ObjectType):
     Define Query fields
     """
 
-    all_customers = graphene.List(CustomerType)
-    customer = graphene.Field(CustomerType, id=graphene.Int(required=True))
-    all_products = graphene.List(ProductType)
-    product = graphene.Field(ProductType, id=graphene.Int(required=True))
-    all_orders = graphene.List(OrderType)
-    order = graphene.Field(OrderType, id=graphene.Int(required=True))
+    all_customers = DjangoFilterConnectionField(CustomerType, filterset_class=CustomerFilter)
+    all_products = DjangoFilterConnectionField(ProductType, filterset_class=ProductFilter)
+    all_orders = DjangoFilterConnectionField(OrderType, filterset_class=OrderFilter)
 
-    def resolve_all_customers(self, info):
-        """
-        Get all customers
-        """
-        return Customer.objects.all()
+    customer = graphene.Field(CustomerType, id=graphene.ID(required=True))
+    product = graphene.Field(ProductType, id=graphene.ID(required=True))
+    order = graphene.Field(OrderType, id=graphene.ID(required=True))
 
+    
     def resolve_customer(self, info, id):
         """
         Get a customer by id
         """
-        return Customer.objects.get(id=id)
-
-    def resolve_all_products(self, info):
-        """
-        Get all products
-        """
-        return Product.objects.all()
+        try:
+            return Customer.objects.get(pk=id)
+        except Customer.DoesNotExist as e:
+            raise Exception(f"Error getting customer: {e}")
 
     def resolve_product(self, info, id):
         """
         Get a product by id
         """
-        return Product.objects.get(id=id)
-
-    def resolve_all_orders(self, info):
-        """
-        Get all orders
-        """
-        return Order.objects.all()
+        try:
+            return Product.objects.get(pk=id)
+        except Product.DoesNotExist as e:
+            raise Exception(f"Error getting product: {e}")
 
     def resolve_order(self, info, id):
         """
         Get an order by id
         """
-        return Order.objects.get(id=id)
+        try:
+            return Order.objects.get(pk=id)
+        except Exception as e:
+            raise Exception(f"Error getting order: {e}")
 
 class Mutation(graphene.ObjectType):
     """
@@ -354,9 +361,7 @@ class Mutation(graphene.ObjectType):
 
     create_customer = CreateCustomer.Field()
     bulk_create_customers = BulkCreateCustomers.Field()
-
     create_product = CreateProduct.Field()
-
     create_order = CreateOrder.Field()  
 
 
