@@ -1,6 +1,8 @@
 import datetime
-import requests
 import os
+
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
 
 def log_crm_heartbeat():
     """
@@ -21,8 +23,11 @@ def log_crm_heartbeat():
     query= "{ hello }"
 
     try: 
-        response = requests.post(graphql_endpoint, json={'query': query})
+        transport = RequestsHTTPTransport(url=graphql_endpoint)
+        client = Client(transport=transport, fetch_schema_from_transport=True)
+        response = client.execute(graphql_endpoint, json={'query': query})
         response.raise_for_status() #raise http error for bad requests
+        data=response.json().get('data', {})
         print("GraphQL endpoint is reachable and healthy")
     except Exception as e:
         print(f"Error querying GraphQL endpoint failed: {e}")

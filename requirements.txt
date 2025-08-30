@@ -5,9 +5,4 @@ django-cors-headers
 django-rest-framework
 django-rest-framework-simplejwt
 django-rest-framework-simplejwt-blacklist
-django
-django-cors-headers
-django-filter
-django-rest-framework
-django-rest-framework-simplejwt
-django-rest-framework-simplejwt-blacklist
+django-crontab
