@@ -8,11 +8,11 @@ from graphene_django.filter import DjangoFilterConnectionField
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .filters import CustomerFilter, ProductFilter, OrderFilter
-from .models import Customer, Product, Order
+from .models import Customer, Order
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
-from .models import Product
+from crm.models import Product
 
 from .mutations import CreateCustomer, BulkCreateCustomers, CreateProduct, CreateOrder
 
