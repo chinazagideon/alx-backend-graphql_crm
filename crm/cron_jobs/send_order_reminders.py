@@ -1,6 +1,8 @@
 import os
 import requests
 from datetime import datetime, timedelta
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
 
 # define graphql endpoint
 GRAPHQL_ENDPOINT = "http://localhost:8000/graphql"
@@ -23,6 +25,10 @@ def send_reminders():
     """
         Queries recent orders and logs reminders
     """
+    # create a graphql client
+    transport = RequestsHTTPTransport(url=GRAPHQL_ENDPOINT)
+    client = Client(transport=transport, fetch_schema_from_transport=True)
+    
     # calculate the date range for the past 7 days
 
     today = datetime.now().date()
@@ -35,7 +41,7 @@ def send_reminders():
     }
 
     try : 
-        response = requests.post(GRAPHQL_ENDPOINT, json={
+        response = client.execute(GRAPHQL_ENDPOINT, json={
             'query': query,
             'variables': vars,
         })
