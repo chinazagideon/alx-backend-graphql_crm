@@ -12,6 +12,7 @@ from .models import Customer, Product, Order
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
+from .models import Product
 
 from .mutations import CreateCustomer, BulkCreateCustomers, CreateProduct, CreateOrder
 
