@@ -51,7 +51,7 @@ def send_reminders():
 
         orders = data.get('allOrders', {}).get('edges', [])
 
-        log_file_path = "order_reminders_log.txt"
+        log_file_path = "/tmp/order_reminders_log.txt"
 
         with open(log_file_path, 'a') as log_file:
             log_file.write(f"\n--- Reminders Processed at {datetime.now()} ---\n")
