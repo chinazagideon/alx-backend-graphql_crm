@@ -1,7 +1,6 @@
 import requests
-import datetime
 from celery import shared_task
-
+from datetime import datetime
 @shared_task
 def generate_crm_report():
     graphql_endpoint = "http://localhost:8000/graphql"
@@ -13,16 +12,16 @@ def generate_crm_report():
     """
 
     try:
-        response = requests.post(graphql_endpoint, json={'query': query})
+        response = requests.post(graphql_endpoint, json={"query": query})
         response.raise_for_status()
-        data = response.json().get('data', {})
+        data = response.json().get("data", {})
 
         customer_count = data.get('allCustomers', {}).get('totalCount', 0)
         order_count = data.get('allOrders', {}).get('totalCount', 0)
         
-        total_revenue = "N/A" # or another GraphQL query to get sum
+        total_revenue = "N/A"
 
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         report_log = f"{timestamp} - Report: {customer_count} customers, {order_count} orders, {total_revenue} revenue."
 
         with open('/tmp/crm_report_log.txt', 'a') as f:
